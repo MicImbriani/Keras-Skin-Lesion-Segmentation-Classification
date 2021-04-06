@@ -2,74 +2,41 @@ import keras.backend as K
 from keras import losses
 import tensorflow as tf
 
-def toFloat(x):
+def castF(x):
     return K.cast(x, K.floatx())
 
-def toBool(x):
+def castB(x):
     return K.cast(x, bool)
 
-    """ Intersection over union functions inspired from:
-    https://stackoverflow.com/questions/65974208/intersection-over-union-iou-metric-for-multi-class-semantic-segmentation-task
-    """
-def intersection_over_union(y_true, y_pred, smooth=1e-07):
+def iou_loss_core(y_true, y_pred, smooth=1):
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
     union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
-    iou = (intersection + smooth) / (union + smooth)
+    iou = (intersection + smooth) / ( union + smooth)
     return iou
 
+
 def iou_loss(y_true, y_pred):
-    return 1 - intersection_over_union(y_true, y_pred)
+    return 1 - iou_loss_core(y_true, y_pred)
 
 def iou_bce_loss(y_true, y_pred):
     return losses.binary_crossentropy(y_true, y_pred) + 5 * iou_loss(y_true, y_pred)
 
-
-    """Dice coefficient inspired from:
-    https://github.com/keras-team/keras/issues/3611 ,
-    but with smooth coefficient with value 100, as per
-    https://github.com/juliandewit/kaggle_ndsb2017/issues/21 .
-    
-    I created two different functions, one for obtaining the score
-    itself, and one for the loss.
-    """
 def dice_coef(y_true, y_pred):
-    smooth = 100
-    y_true = K.cast(y_true, 'float32')
-    y_true_flatten = K.cast(K.flatten(y_true), 'float32')
+    y_true_f = K.flatten(y_true)
     y_pred = K.cast(y_pred, 'float32')
-    y_pred_flatten = K.cast(K.flatten(y_pred), 'float32')
-    #y_pred_flatten = K.cast(K.greater(K.flatten(y_pred), 0.5), 'float32')
-    intersection = K.sum(y_true_flatten * y_pred_flatten)
-    score = (2. * intersection + smooth) / (K.sum(y_true_flatten) + K.sum(y_pred_flatten) + smooth)
+    y_pred_f = K.cast(K.greater(K.flatten(y_pred), 0.5), 'float32')
+    intersection = y_true_f * y_pred_f
+    score = 2. * K.sum(intersection) / (K.sum(y_true_f) + K.sum(y_pred_f) + K.epsilon())
     return score
 
 def dice_loss(y_true, y_pred):
-    smooth = 100
-    y_true = K.cast(y_true, 'float32')
-    y_true_flatten = K.cast(K.flatten(y_true), 'float32')
-    y_pred = K.cast(y_pred, 'float32')
-    y_pred_flatten = K.cast(K.flatten(y_pred), 'float32')
-    #y_pred_flatten = K.cast(K.greater(K.flatten(y_pred), 0.5), 'float32')
-    intersection = K.sum(y_true_flatten * y_pred_flatten)
-    score = (2. * intersection + smooth) / (K.sum(y_true_flatten) + K.sum(y_pred_flatten) + smooth)
+    smooth = 1.
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    intersection = y_true_f * y_pred_f
+    score = (2. * K.sum(intersection) + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
     return 1. - score
 
-
-
-    """Jaccard index is more optimal for unbalanced datasets, taken from:
-    https://gist.github.com/wassname/f1452b748efcbeb4cb9b1d059dce6f96
-    """
-def jaccard_distance_loss(y_true, y_pred, smooth=100):
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
-    jac = (intersection + smooth) / (sum_ - intersection + smooth)
-    return (1 - jac)
-
-
-
-    """Taken from:
-    https://github.com/Atomwh/FocalLoss_Keras/blob/master/focalloss.py
-    """
 def focal_loss(y_true, y_pred):
     gamma=0.5
     alpha=0.25
@@ -84,26 +51,26 @@ def competition_metric(true, pred): #any shape can go
     #flattened images (batch, pixels)
     true = K.batch_flatten(true)
     pred = K.batch_flatten(pred)
-    pred = toFloat(K.greater(pred, 0.5))
+    pred = castF(K.greater(pred, 0.5))
 
     #total white pixels - (batch,)
     trueSum = K.sum(true, axis=-1)
     predSum = K.sum(pred, axis=-1)
 
     #has mask or not per image - (batch,)
-    true1 = toFloat(K.greater(trueSum, 1))    
-    pred1 = toFloat(K.greater(predSum, 1))
+    true1 = castF(K.greater(trueSum, 1))    
+    pred1 = castF(K.greater(predSum, 1))
 
     #to get images that have mask in both true and pred
-    truePositiveMask = toBool(true1 * pred1)
+    truePositiveMask = castB(true1 * pred1)
 
     #separating only the possible true positives to check iou
     testTrue = tf.boolean_mask(true, truePositiveMask)
     testPred = tf.boolean_mask(pred, truePositiveMask)
 
     #getting iou and threshold comparisons
-    iou = intersection_over_union(testTrue,testPred) 
-    truePositives = [toFloat(K.greater(iou, tres)) for tres in tresholds]
+    iou = iou_loss_core(testTrue,testPred) 
+    truePositives = [castF(K.greater(iou, tres)) for tres in tresholds]
 
     #mean of thressholds for true positives and total sum
     truePositives = K.mean(K.stack(truePositives, axis=-1), axis=-1)
@@ -113,7 +80,7 @@ def competition_metric(true, pred): #any shape can go
     trueNegatives = (1-true1) * (1 - pred1) # = 1 -true1 - pred1 + true1*pred1
     trueNegatives = K.sum(trueNegatives) 
 
-    return (truePositives + trueNegatives) / toFloat(K.shape(true)[0])
+    return (truePositives + trueNegatives) / castF(K.shape(true)[0])
 
 # For threshold determination
 def faster_iou_metric_batch(A, B):
