@@ -1,14 +1,12 @@
-import numpy as np 
-import os
-import skimage.io as io
-import skimage.transform as trans
 import numpy as np
-from keras.models import *
-from keras.layers import *
-from keras.optimizers import *
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from keras import backend as keras
-import tensorflow as tf
+import matplotlib as plt
+import metrics
+
+from tqdm import tqdm_notebook
+
+from keras.optimizers import SGD
+from keras.layers import Input, Conv2D, SpatialDropout2D, Activation, MaxPooling2D, Conv2DTranspose, concatenate, UpSampling2D
+from keras.models import Model, load_model, model_from_json
 
 
 def unet(pretrained_weights = None,input_size = (256,256,1)):
@@ -24,12 +22,12 @@ def unet(pretrained_weights = None,input_size = (256,256,1)):
     pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
     conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
     conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
-    drop4 = Dropout(0.5)(conv4)
+    drop4 = SpatialDropout2D(0.5)(conv4)
     pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
 
     conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
     conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
-    drop5 = Dropout(0.5)(conv5)
+    drop5 = SpatialDropout2D(0.5)(conv5)
 
     up6 = Conv2D(512, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(drop5))
     merge6 = concatenate([drop4,up6], axis = 3)
@@ -51,14 +49,14 @@ def unet(pretrained_weights = None,input_size = (256,256,1)):
     conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
     conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
     conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-    conv10 = Conv2D(1, 1, activation = 'sigmoid')(conv9)
-
-    tf.shape(conv10)
+    conv10 = Conv2D(1, 1, activation = 'sigmoid', padding = 'same', kernel_initializer = 'he_normal')(conv9)
 
     model = Model(inputs,conv10)
 
-    
-    #model.summary()
-
+    model.compile(optimizer=SGD(lr=0.001, momentum=0.9, nesterov=True),
+                  loss=metrics.dice_coef_loss_c,
+                  metrics=[metrics.dice_coef, metrics.jaccard_coef_c, 'accuracy']
+                  )
+    model.summary()
 
     return model

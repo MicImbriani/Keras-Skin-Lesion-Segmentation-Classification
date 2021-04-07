@@ -24,6 +24,23 @@ def iou_bce_loss(y_true, y_pred):
     return losses.binary_crossentropy(y_true, y_pred) + 5 * iou_loss(y_true, y_pred)
 
 
+#TAKEN FROM CHATNIA
+smooth=1
+def dice_coef_c(y_true, y_pred, smooth=1):
+    intersection = K.sum(y_true * y_pred, axis=[0,1,2])
+    union = K.sum(y_true, axis=[0,1,2]) + K.sum(y_pred, axis=[0,1,2])
+    return K.mean( (2. * intersection + smooth) / (union + smooth))
+
+def dice_coef_loss_c(y_true, y_pred):
+    return 1-dice_coef(y_true, y_pred)
+
+def jaccard_coef_c(y_true, y_pred, smooth=100):
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    return (1 - jac) * smooth
+
+
     """Dice coefficient inspired from:
     https://github.com/keras-team/keras/issues/3611 ,
     but with smooth coefficient with value 100, as per
@@ -34,9 +51,7 @@ def iou_bce_loss(y_true, y_pred):
     """
 def dice_coef(y_true, y_pred):
     smooth = 100
-    y_true = K.cast(y_true, 'float32')
     y_true_flatten = K.cast(K.flatten(y_true), 'float32')
-    y_pred = K.cast(y_pred, 'float32')
     y_pred_flatten = K.cast(K.flatten(y_pred), 'float32')
     #y_pred_flatten = K.cast(K.greater(K.flatten(y_pred), 0.5), 'float32')
     intersection = K.sum(y_true_flatten * y_pred_flatten)

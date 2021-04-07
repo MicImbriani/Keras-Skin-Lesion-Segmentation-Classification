@@ -174,3 +174,54 @@
 2021-04-06 16:35:32,887:WARNING:Can save best model only with val_competition_metric available, skipping.
 2021-04-06 16:35:53,975:WARNING:Can save best model only with val_competition_metric available, skipping.
 2021-04-06 16:36:14,900:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:07:45,811:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:08:05,552:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:08:25,405:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:08:45,402:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:09:05,334:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:14:40,138:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:14:56,340:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:15:12,811:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:15:29,408:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:15:45,993:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:20:19,710:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:20:35,999:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:20:52,595:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:21:09,250:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:21:25,985:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:36:06,014:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:36:22,240:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:36:38,744:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:36:55,493:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:37:12,179:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:41:29,727:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:41:44,436:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:41:59,438:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:42:14,608:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:42:29,727:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:50:04,457:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:50:20,901:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:50:37,610:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:50:54,489:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 16:51:11,290:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:04:43,871:INFO:Succesfully deleted 37 SUPERPIXEL images.
+2021-04-07 20:05:21,000:INFO:Succesfully augmented 37 images.
+2021-04-07 20:05:34,643:INFO:Resized 40 Train images.
+2021-04-07 20:05:36,271:INFO:Resized 49 Masks images.
+2021-04-07 20:05:41,281:INFO:Successfully turned 86 images to GrayScale.
+2021-04-07 20:08:28,888:INFO:Succesfully deleted 37 SUPERPIXEL images.
+2021-04-07 20:09:06,559:INFO:Succesfully augmented 37 images.
+2021-04-07 20:09:18,434:INFO:Resized 40 Train images.
+2021-04-07 20:09:19,783:INFO:Resized 49 Masks images.
+2021-04-07 20:09:23,751:INFO:Successfully turned 92 images to GrayScale.
+2021-04-07 20:13:20,717:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:14:49,654:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:16:18,152:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:17:46,689:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:19:15,318:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-07 20:19:22,946:INFO:Assets written to: model_version0\assets
+2021-04-07 22:11:55,080:INFO:Succesfully deleted 0 SUPERPIXEL images.
+2021-04-07 23:12:08,923:INFO:Succesfully augmented 2000 images.
+2021-04-07 23:43:26,687:INFO:Resized 44 Train images.
+2021-04-07 23:44:25,977:INFO:Resized 53 Masks images.
+2021-04-07 23:44:41,212:INFO:Successfully turned 4302 images to GrayScale.

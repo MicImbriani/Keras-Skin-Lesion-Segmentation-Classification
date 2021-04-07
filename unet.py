@@ -7,6 +7,20 @@ from keras.layers import Input, Lambda, Conv2D, SpatialDropout2D, BatchNormaliza
 from keras.models import Model, load_model, model_from_json
 
 
+import numpy as np 
+import os
+import skimage.io as io
+import skimage.transform as trans
+import numpy as np
+from keras.models import *
+from keras.layers import *
+from keras.optimizers import *
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from keras import backend as keras
+import tensorflow as tf
+import metrics
+
+
 def conv_block(neurons, block_input, batch_norm=False, dropout=None, middle=False):
     conv1 = Conv2D(neurons, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(block_input)
     if batch_norm:
@@ -64,4 +78,12 @@ def build_model(input_size, batch_norm=False):
     output_layer = Conv2D(1, (1,1), padding="same", activation="sigmoid")(deconv1)
     
     model = Model(input_layer, output_layer)
+
+    model.compile(optimizer=SGD(lr=0.001, momentum=0.9, nesterov=True),
+                  loss=metrics.dice_coef_loss_c,
+                  metrics=[metrics.dice_coef, metrics.jaccard_coef_c, 'accuracy']
+                  )
+    model.summary()
+
+
     return model
