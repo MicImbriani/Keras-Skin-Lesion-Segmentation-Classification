@@ -273,34 +273,16 @@ def make_greyscale(folder_path, jobs):
     logging.info(f"Successfully turned {len(images)} images to GrayScale.")
 
 
-def turn_np_imgs(folder_path, resize_dimensions):
+def turn_np(folder_path, resize_dimensions):
     images = [splitext(file)[0] for file in listdir(folder_path)]
     imgs_array = []
-    imgs_array1 = []
     for image in images:
         path = folder_path + "/" + image + ".png"
         im = cv2.imread(path, 0)
         im = im.tolist()
         imgs_array.append(im)
-    #npa = np.asarray(imgs_array, dtype=np.float32)
+    npa = np.asarray(imgs_array, dtype=np.float32)
     return imgs_array
-
-def turn_np_masks(folder_path, resize_dimensions):
-    images = [splitext(file)[0] for file in listdir(folder_path)]
-    imgs_array = []
-    imgs_array1 = []
-    for image in images:
-        path = folder_path + "/" + image + ".png"
-        im = cv2.imread(path, 0)
-        _, im1 = cv2.threshold(im, 127, 255, cv2.THRESH_BINARY)
-        _, im2 = cv2.threshold(im, 127, 1, cv2.THRESH_BINARY)
-        im1 = im1.tolist()
-        im2 = im2.tolist()
-        imgs_array.append(im1)
-        imgs_array1.append(im2)
-    #npa = np.asarray(imgs_array, dtype=np.float32)
-    
-    return imgs_array, imgs_array1
 
 
 def move_data(list, path, data_type):
@@ -460,10 +442,10 @@ def train_val_split(path, dimensions):
     val_masks_folder_path = val_imgs_folder_path + "_GT_masks"
     resize_dimensions = (dimensions)
 
-    train_X = turn_np_imgs(images_folder_path, resize_dimensions)
-    train_y, train_y1 = turn_np_masks(masks_folder_path, resize_dimensions)
+    train_X = turn_np(images_folder_path, resize_dimensions)
+    train_y = turn_np(masks_folder_path, resize_dimensions)
 
-    test_X = turn_np_imgs(val_imgs_folder_path, resize_dimensions)
-    test_y, test_y1 = turn_np_masks(val_masks_folder_path, resize_dimensions)
+    test_X = turn_np(val_imgs_folder_path, resize_dimensions)
+    test_y = turn_np(val_masks_folder_path, resize_dimensions)
 
-    return train_X, train_y, test_X, test_y, train_y1, test_y1
+    return train_X, train_y, test_X, test_y
