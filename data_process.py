@@ -276,7 +276,6 @@ def make_greyscale(folder_path, jobs):
 def turn_np_imgs(folder_path, resize_dimensions):
     images = [splitext(file)[0] for file in listdir(folder_path)]
     imgs_array = []
-    imgs_array1 = []
     for image in images:
         path = folder_path + "/" + image + ".png"
         im = cv2.imread(path, 0)
@@ -292,14 +291,16 @@ def turn_np_masks(folder_path, resize_dimensions):
     for image in images:
         path = folder_path + "/" + image + ".png"
         im = cv2.imread(path, 0)
-        _, im1 = cv2.threshold(im, 127, 255, cv2.THRESH_BINARY)
-        _, im2 = cv2.threshold(im, 127, 1, cv2.THRESH_BINARY)
+        ret, im1 = cv2.threshold(im, 127, 255, cv2.THRESH_BINARY)
+        ret2, im2 = cv2.threshold(im, 127, 1, cv2.THRESH_BINARY)
         im1 = im1.tolist()
         im2 = im2.tolist()
         imgs_array.append(im1)
         imgs_array1.append(im2)
-    #npa = np.asarray(imgs_array, dtype=np.float32)
+    # npa = np.asarray(imgs_array, dtype=np.float32)
+    # npa1 = np.asarray(imgs_array1, dtype=np.float32)
     
+    #return npa, npa1
     return imgs_array, imgs_array1
 
 

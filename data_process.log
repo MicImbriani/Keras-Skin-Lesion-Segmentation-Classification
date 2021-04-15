@@ -225,3 +225,70 @@
 2021-04-07 23:43:26,687:INFO:Resized 44 Train images.
 2021-04-07 23:44:25,977:INFO:Resized 53 Masks images.
 2021-04-07 23:44:41,212:INFO:Successfully turned 4302 images to GrayScale.
+2021-04-08 15:55:01,732:INFO:Succesfully deleted 37 SUPERPIXEL images.
+2021-04-08 15:55:17,038:INFO:Succesfully augmented 37 images.
+2021-04-08 15:55:18,676:INFO:Resized 36 Train images.
+2021-04-08 15:55:19,030:INFO:Resized 45 Masks images.
+2021-04-08 15:55:19,273:INFO:Successfully turned 91 images to GrayScale.
+2021-04-08 16:01:33,981:INFO:Succesfully deleted 0 SUPERPIXEL images.
+2021-04-08 21:34:42,928:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-08 21:35:04,308:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-08 21:35:26,149:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-08 21:35:48,038:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-08 21:36:09,947:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-08 21:36:19,725:INFO:Assets written to: model_version0\assets
+2021-04-09 12:28:19,735:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:28:34,851:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:28:50,121:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:29:05,471:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:29:20,913:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:29:36,374:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:29:51,902:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:30:07,442:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:30:23,009:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:30:38,626:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:30:54,290:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:31:09,994:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:31:25,712:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:31:41,442:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:31:57,150:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:32:12,899:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:32:28,674:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:32:44,492:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:33:00,318:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:33:16,132:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:33:31,988:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:33:47,831:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:34:03,637:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:34:19,425:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:34:35,319:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:34:51,148:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:35:07,018:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:35:22,941:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:35:38,858:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:35:54,684:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:36:10,501:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:36:26,360:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:36:42,178:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:36:57,980:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:37:13,806:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:37:29,634:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:37:45,460:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:38:01,339:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:38:17,157:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:38:32,968:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:38:48,839:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:39:04,722:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:39:20,506:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:39:36,409:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:39:52,293:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:40:08,139:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:40:24,010:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:40:39,843:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:40:55,737:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:41:11,651:WARNING:Can save best model only with val_competition_metric available, skipping.
+2021-04-09 12:41:20,998:INFO:Assets written to: model_version0\assets
+2021-04-10 15:25:33,993:INFO:Assets written to: model_version0\assets
+2021-04-10 15:27:18,469:INFO:Assets written to: model_version0\assets
+2021-04-10 16:03:37,785:INFO:Assets written to: model_version0\assets
+2021-04-11 08:15:01,224:INFO:Assets written to: model_version0\assets

@@ -1,89 +1,62 @@
 import numpy as np
 import matplotlib as plt
+import metrics
 
 from tqdm import tqdm_notebook
 
-from keras.layers import Input, Lambda, Conv2D, SpatialDropout2D, BatchNormalization, Activation, MaxPooling2D, Conv2DTranspose, concatenate
+from keras.optimizers import SGD
+from keras.layers import Input, Conv2D, SpatialDropout2D, Activation, MaxPooling2D, Conv2DTranspose, concatenate, UpSampling2D, Dropout
 from keras.models import Model, load_model, model_from_json
 
 
-import numpy as np 
-import os
-import skimage.io as io
-import skimage.transform as trans
-import numpy as np
-from keras.models import *
-from keras.layers import *
-from keras.optimizers import *
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from keras import backend as keras
-import tensorflow as tf
-import metrics
+def unet(pretrained_weights = None,input_size = (256,256,1)):
+    inputs = Input(input_size)
+    conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
+    conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
+    conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
+    conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
+    conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
+    drop4 = Dropout(0.5)(conv4)
+    pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
 
+    conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
+    conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
+    drop5 = Dropout(0.5)(conv5)
 
-def conv_block(neurons, block_input, batch_norm=False, dropout=None, middle=False):
-    conv1 = Conv2D(neurons, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(block_input)
-    if batch_norm:
-        conv1 = BatchNormalization()(conv1)
-    if dropout is not None:
-        conv1 = SpatialDropout2D(dropout)(conv1)
-    conv2 = Conv2D(neurons, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
-    if batch_norm:
-        conv2 = BatchNormalization()(conv2)
-    if dropout is not None:
-        conv2 = SpatialDropout2D(dropout)(conv2)
-    if middle is True:
-        return conv2
-    pool = MaxPooling2D((2,2))(conv2)
-    return pool, conv2
+    up6 = Conv2D(512, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(drop5))
+    merge6 = concatenate([drop4,up6], axis = 3)
+    conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
+    conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
 
-def deconv_block(neurons, block_input, shortcut, batch_norm=False, dropout=None):
-    deconv = Conv2DTranspose(neurons, (3, 3), activation='relu', strides=(2, 2), padding="same")(block_input)
-    uconv = concatenate([deconv, shortcut])
-    uconv = Conv2D(neurons, (2, 2), padding="same", kernel_initializer='he_normal')(uconv)
-    if batch_norm:
-        uconv = BatchNormalization()(uconv)
-    #uconv = Activation('relu')(uconv)
-    if dropout is not None:
-        uconv = SpatialDropout2D(dropout)(uconv)
-    uconv = Conv2D(neurons, (3, 3), activation='relu', padding="same", kernel_initializer='he_normal')(uconv)
-    if batch_norm:
-        uconv = BatchNormalization()(uconv)
-    #uconv = Activation('relu')(uconv)
-    if dropout is not None:
-        uconv = SpatialDropout2D(dropout)(uconv)
-    return uconv
-    
-    
-def build_model(input_size, batch_norm=False):
-    #size = (64, 64, 1)
-    input_layer = Input(input_size)
+    up7 = Conv2D(256, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv6))
+    merge7 = concatenate([conv3,up7], axis = 3)
+    conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
+    conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
 
-    # Down
-    conv1, shortcut1 = conv_block(64, input_layer, batch_norm)
-    conv2, shortcut2 = conv_block(128, conv1, batch_norm)
-    conv3, shortcut3 = conv_block(256, conv2, batch_norm)
-    conv4, shortcut4 = conv_block(512, conv3, batch_norm, dropout=0.5)
-    
-    # Middle
-    convm = conv_block(1024, conv4, batch_norm, middle=True)
-    
-    # Up
-    deconv4 = deconv_block(512, convm, shortcut4, batch_norm)
-    deconv3 = deconv_block(256, deconv4, shortcut3, batch_norm)
-    deconv2 = deconv_block(128, deconv3, shortcut2, batch_norm)
-    deconv1 = deconv_block(64, deconv2, shortcut1, batch_norm)
-    #final_conv = Conv2D(2, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(deconv1)
+    up8 = Conv2D(128, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv7))
+    merge8 = concatenate([conv2,up8], axis = 3)
+    conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
+    conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
 
-    output_layer = Conv2D(1, (1,1), padding="same", activation="sigmoid")(deconv1)
-    
-    model = Model(input_layer, output_layer)
+    up9 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv8))
+    merge9 = concatenate([conv1,up9], axis = 3)
+    conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
+    conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+    conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+    conv10 = Conv2D(1, 1, activation = 'sigmoid', padding = 'same', kernel_initializer = 'he_normal')(conv9)
 
-    model.compile(optimizer=SGD(lr=0.001, momentum=0.9, nesterov=True),
-                  loss=metrics.dice_coef_loss_c,
-                  metrics=[metrics.dice_coef, metrics.jaccard_coef_c, 'accuracy']
+    model = Model(inputs,conv10)
+
+    model.compile(optimizer=SGD(lr=0.0001, momentum=0.9, nesterov=True),
+                  loss='binary_crossentropy',
+                  metrics=[metrics.dice_coef_c, metrics.jaccard_coef_c, 'accuracy']
                   )
     model.summary()
-
 
     return model

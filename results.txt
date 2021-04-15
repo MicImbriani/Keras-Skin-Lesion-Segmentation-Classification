@@ -1,0 +1,2 @@
+Epoch 35/35
+667/667 [==============================] - 831s 1s/step - loss: -604.7674 - dice_coef_c: 1.9589 - jaccard_coef_c: -3217.8237 - accuracy: 0.3402 - val_loss: 12.2202 - val_dice_coef_c: 0.3163 - val_jaccard_coef_c: 57.6946 - val_accuracy: 0.1985
