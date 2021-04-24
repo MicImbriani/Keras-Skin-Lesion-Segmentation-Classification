@@ -1,5 +1,5 @@
-#from unet import unet
-from unetbn import unet
+from unet import unet
+#from unetbn import unet
 import metrics
 import data_process
 from PIL import Image
@@ -7,13 +7,12 @@ from PIL import Image
 
 from keras.optimizers import Adam, SGD
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, TensorBoard
-from keras.metrics import MeanIoU
 
 path = "D:/Users/imbrm/ISIC_2017/check/new/all"
 #path = "D:/Users/imbrm/ISIC_2017-2"
 
-bs = 16
-ep = 100
+bs = 1
+ep = 5
 size = (256,256,1)
 version = 1
 
@@ -34,11 +33,12 @@ model = unet(input_size=size)
 
 print("Training model:")
 history = model.fit(train_X,
-                    train_y,
+                    train_y1,
                     batch_size=bs,
                     validation_data = (val_X, val_y1),
                     epochs=ep,
-                    callbacks=[checkpoint, reduce_lr, early_stopping, tensorboard]
+                    callbacks=[checkpoint, reduce_lr, early_stopping, tensorboard],
+                    shuffle=True
                     )
 
 model.save('model_version_{}'.format(version))

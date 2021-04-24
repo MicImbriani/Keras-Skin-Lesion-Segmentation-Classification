@@ -7,6 +7,7 @@ import random
 import shutil
 import math
 import cv2
+import csv
 
 import pandas as pd
 from sklearn import model_selection
@@ -140,6 +141,18 @@ def augment_operations(image_id, image_folder_path, mask_folder_path):
 
     # Set random seed.
     seed = np.random.randint(0, 2**30)
+
+    # # Write seed in .csv file
+    # with open('seed.csv', 'w', newline='') as file:
+    #     reader = csv.reader(file)
+    #     writer.writerow([image_id, seed])
+
+    # # Load seed from file     ############################## <--- Uncomment HERE to load seeds
+    # df = pd.read_csv("seed.csv")
+    # img_index = df.loc[df["image_id"] == image_id].index[0]
+    # seed = df.at[img_index, "seed"]
+
+    # Set Torch's seed
     random.seed(seed)
     torch.manual_seed(seed)
 
@@ -188,6 +201,12 @@ def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path):
                 masks_folder_path + "/" + image_id + "_segmentation" + "x1" + ".png", "PNG", quality=100
             )
 
+            # Add new datapoint to .csv file 
+            with open(csv_file_path, 'w', newline='') as file:
+                reader = csv.reader(file)
+                writer.writerow([-1, image_id + "x1", 0, 0])
+
+
     if melanoma == 1:
         # Perform augmentations, store the resulting images and masks.
         img_1, img_1_mask = augment_operations(
@@ -222,6 +241,14 @@ def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path):
         img_4_mask.save(
             masks_folder_path + "/" + image_id + "_segmentation" + "x4" + ".png", "PNG", quality=100
         )
+
+        # Add new datapoint to .csv file 
+        with open(csv_file_path, 'w', newline='') as file:
+            reader = csv.reader(file)
+            writer.writerow([-1, image_id + "x1", 1, 0])
+            writer.writerow([-1, image_id + "x2", 1, 0])
+            writer.writerow([-1, image_id + "x3", 1, 0])
+            writer.writerow([-1, image_id + "x4", 1, 0])
 
 
 def augment_dataset(images_folder_path, masks_folder_path, csv_file_path, jobs):
@@ -416,6 +443,11 @@ def generate_dataset(path, resize_dimensions, n_jobs):
         os.remove(images_folder_path + "/" + "ISIC-2017_Training_Data_metadata.csv")
     except: 
         pass
+
+    # Create new .csv file with seeds 
+    with open('seeds.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["ID", "seed"])
 
     # Augment with relative masks.
     augment_dataset(
