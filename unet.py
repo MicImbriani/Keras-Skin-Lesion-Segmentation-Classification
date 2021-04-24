@@ -55,7 +55,11 @@ def unet(pretrained_weights = None,input_size = (256,256,1)):
 
     model.compile(optimizer=SGD(lr=0.0001, momentum=0.9, nesterov=True),
                   loss='binary_crossentropy',
-                  metrics=[metrics.dice_coef_c, metrics.jaccard_coef_c, 'accuracy']
+                  metrics=[metrics.dice_coef_loss,
+                           metrics.jaccard_coef_loss
+                        #    metrics.true_positive,
+                        #    metrics.true_negative
+                           ]
                   )
     model.summary()
 
