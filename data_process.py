@@ -58,7 +58,7 @@ def del_superpixels(input_path, jobs):
     logging.info(f"Succesfully deleted {len(images)} SUPERPIXEL images.")
 
 
-def resize(image, input_folder, size):
+def resize(image, input_folder, size, is_mask):
     """Defining a function that will allow me to parallelise the resizing process.
     It takes the name (basename) of the current image, resizes and saves the image.
 
@@ -72,7 +72,7 @@ def resize(image, input_folder, size):
     img.save(image_path)
 
 
-def resize_set(input_folder, size, jobs, train_or_test):
+def resize_set(input_folder, size, jobs, train_val, img_mask):
     """
     Stores the input and output directories, then stores all the
     names of the images in a list, and executes the resizing in parallel.
@@ -84,15 +84,14 @@ def resize_set(input_folder, size, jobs, train_or_test):
         input_folder (string): Path for input folder.
         size (tuple): Target size to be resized to.
         jobs (int): Number of parallelised jobs.
-        train_or_test (string): States whether it's train or test set.
+        is_mask (string): States whether it's an image or masks set.
     """
     images = [splitext(file)[0] for file in listdir(input_folder)]
-    print(f"Resizing {train_or_test} Images:")
+    print(f"Resizing {train_val} {img_mask}.")
     Parallel(n_jobs=jobs)(
-        delayed(resize)(image, input_folder, size)
+        delayed(resize)(image, input_folder, size, img_mask)
         for image in tqdm(images)
     )
-    logging.info(f"Resized {len(input_folder)} {train_or_test} images.")
 
 
 def get_result(image_id, csv_file_path):
@@ -111,7 +110,7 @@ def get_result(image_id, csv_file_path):
     return melanoma
 
 
-def augment_operations(image_id, image_folder_path, mask_folder_path):
+def augment_operations(image_id, image_folder_path, mask_folder_path, train_val):
     """Performs augmentation operations on the inputted image.
     Seed is used for for applying the same augmentation to the image and its mask.
 
@@ -131,7 +130,7 @@ def augment_operations(image_id, image_folder_path, mask_folder_path):
     transf_comp = transforms.Compose(
         [
             transforms.RandomAffine(
-                degrees=360, scale=(0.5, 1.5), shear=[0, 20, 0, 20], fillcolor=0
+                degrees=360, scale=(1, 1.7), shear=[0, 20, 0, 20], fillcolor=0
             ),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomVerticalFlip(0.5),
@@ -142,10 +141,16 @@ def augment_operations(image_id, image_folder_path, mask_folder_path):
     # Set random seed.
     seed = np.random.randint(0, 2**30)
 
-    # # Write seed in .csv file
-    # with open('seed.csv', 'w', newline='') as file:
-    #     reader = csv.reader(file)
-    #     writer.writerow([image_id, seed])
+    if train_val == "Validation":
+        # Write seed in .csv file
+        with open('seedval.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([image_id, seed])
+    else:
+        # Write seed in .csv file
+        with open('seeds.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([image_id, seed])
 
     # # Load seed from file     ############################## <--- Uncomment HERE to load seeds
     # df = pd.read_csv("seed.csv")
@@ -165,7 +170,7 @@ def augment_operations(image_id, image_folder_path, mask_folder_path):
     return new_img, new_img_mask
 
 
-def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path):
+def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path, train_val):
     """Executes augmentation on a single image. Due to imbalanced dataset,
     it will perform more augmentation on melanoma images.
     If mole is not melanoma, perform 1 augmentation with probability=0.5.
@@ -182,76 +187,86 @@ def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path):
         masks_folder_path (string): Path of folder in which the augmented mask will be saved.
         csv_file_path (string): Path leading to the .csv file with ground truth.
     """
-    melanoma = int(get_result(image_id, csv_file_path))
-    img = Image.open(images_folder_path + "/" + image_id + ".jpg")
-    img.save(images_folder_path + "/" + image_id + ".png")
-    os.remove(images_folder_path + "/" + image_id + ".jpg")
-    if melanoma == 0:
-        augm_probability = 0.5
-        n = random.random()
-        if n < augm_probability:
-            # Perform augmentation, store the resulting image and mask.
+    if train_val == "Validation":
+        img_1, img_1_mask = augment_operations(
+            image_id, images_folder_path, masks_folder_path, train_val
+        )
+
+        # Save image and mask in two dedicated folders.
+        img_1.save(images_folder_path + "/" + image_id + "x1" + ".png", "PNG", quality=100)
+        img_1_mask.save(
+            masks_folder_path + "/" + image_id + "_segmentation" + "x1" + ".png", "PNG", quality=100)
+        
+        return
+        
+    else:
+        melanoma = int(get_result(image_id, csv_file_path))
+        if melanoma == 0:
+            augm_probability = 0.5
+            n = random.random()
+            if n < augm_probability:
+                # Perform augmentation, store the resulting image and mask.
+                img_1, img_1_mask = augment_operations(
+                    image_id, images_folder_path, masks_folder_path, train_val
+                )
+
+                # Save image and mask in two dedicated folders.
+                img_1.save(images_folder_path + "/" + image_id + "x1" + ".png", "PNG", quality=100)
+                img_1_mask.save(
+                    masks_folder_path + "/" + image_id + "_segmentation" + "x1" + ".png", "PNG", quality=100
+                )
+
+                # Add new datapoint to .csv file 
+                with open(csv_file_path, 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([image_id + "x1", 0, 0])
+
+
+        if melanoma == 1:
+            # Perform augmentations, store the resulting images and masks.
             img_1, img_1_mask = augment_operations(
-                image_id, images_folder_path, masks_folder_path
+                image_id, images_folder_path, masks_folder_path, train_val
+            )
+            img_2, img_2_mask = augment_operations(
+                image_id, images_folder_path, masks_folder_path, train_val
+            )
+            img_3, img_3_mask = augment_operations(
+                image_id, images_folder_path, masks_folder_path, train_val
+            )
+            img_4, img_4_mask = augment_operations(
+                image_id, images_folder_path, masks_folder_path, train_val
             )
 
-            # Save image and mask in two dedicated folders.
+            # Save images in dedicated folder.
             img_1.save(images_folder_path + "/" + image_id + "x1" + ".png", "PNG", quality=100)
+            img_2.save(images_folder_path + "/" + image_id + "x2" + ".png", "PNG", quality=100)
+            img_3.save(images_folder_path + "/" + image_id + "x3" + ".png", "PNG", quality=100)
+            img_4.save(images_folder_path + "/" + image_id + "x4" + ".png", "PNG", quality=100)
+
+            # Save masks in dedicated folder.
             img_1_mask.save(
                 masks_folder_path + "/" + image_id + "_segmentation" + "x1" + ".png", "PNG", quality=100
             )
+            img_2_mask.save(
+                masks_folder_path + "/" + image_id + "_segmentation" + "x2" + ".png", "PNG", quality=100
+            )
+            img_3_mask.save(
+                masks_folder_path + "/" + image_id + "_segmentation" + "x3" + ".png", "PNG", quality=100
+            )   
+            img_4_mask.save(
+                masks_folder_path + "/" + image_id + "_segmentation" + "x4" + ".png", "PNG", quality=100
+            )
 
             # Add new datapoint to .csv file 
-            with open(csv_file_path, 'w', newline='') as file:
-                reader = csv.reader(file)
-                writer.writerow([-1, image_id + "x1", 0, 0])
+            with open(csv_file_path, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([image_id + "x1", 1, 0])
+                writer.writerow([image_id + "x2", 1, 0])
+                writer.writerow([image_id + "x3", 1, 0])
+                writer.writerow([image_id + "x4", 1, 0])
 
 
-    if melanoma == 1:
-        # Perform augmentations, store the resulting images and masks.
-        img_1, img_1_mask = augment_operations(
-            image_id, images_folder_path, masks_folder_path
-        )
-        img_2, img_2_mask = augment_operations(
-            image_id, images_folder_path, masks_folder_path
-        )
-        img_3, img_3_mask = augment_operations(
-            image_id, images_folder_path, masks_folder_path
-        )
-        img_4, img_4_mask = augment_operations(
-            image_id, images_folder_path, masks_folder_path
-        )
-
-        # Save images in dedicated folder.
-        img_1.save(images_folder_path + "/" + image_id + "x1" + ".png", "PNG", quality=100)
-        img_2.save(images_folder_path + "/" + image_id + "x2" + ".png", "PNG", quality=100)
-        img_3.save(images_folder_path + "/" + image_id + "x3" + ".png", "PNG", quality=100)
-        img_4.save(images_folder_path + "/" + image_id + "x4" + ".png", "PNG", quality=100)
-
-        # Save masks in dedicated folder.
-        img_1_mask.save(
-            masks_folder_path + "/" + image_id + "_segmentation" + "x1" + ".png", "PNG", quality=100
-        )
-        img_2_mask.save(
-            masks_folder_path + "/" + image_id + "_segmentation" + "x2" + ".png", "PNG", quality=100
-        )
-        img_3_mask.save(
-            masks_folder_path + "/" + image_id + "_segmentation" + "x3" + ".png", "PNG", quality=100
-        )   
-        img_4_mask.save(
-            masks_folder_path + "/" + image_id + "_segmentation" + "x4" + ".png", "PNG", quality=100
-        )
-
-        # Add new datapoint to .csv file 
-        with open(csv_file_path, 'w', newline='') as file:
-            reader = csv.reader(file)
-            writer.writerow([-1, image_id + "x1", 1, 0])
-            writer.writerow([-1, image_id + "x2", 1, 0])
-            writer.writerow([-1, image_id + "x3", 1, 0])
-            writer.writerow([-1, image_id + "x4", 1, 0])
-
-
-def augment_dataset(images_folder_path, masks_folder_path, csv_file_path, jobs):
+def augment_dataset(images_folder_path, masks_folder_path, csv_file_path, jobs, train_val):
     """Performs augmentation on the whole dataset.
     Augmentation is performed in parallel to speed up process.
 
@@ -262,10 +277,10 @@ def augment_dataset(images_folder_path, masks_folder_path, csv_file_path, jobs):
         jobs (int): Number by which the parallelisation will be applied concurrently.
     """
     images = [splitext(file)[0] for file in listdir(images_folder_path)]
-    print("Augmenting images:")
+    print(f"Augmenting {train_val} Images and Masks:")
     Parallel(n_jobs=jobs)(
         delayed(augment_img)(
-            image, images_folder_path, masks_folder_path, csv_file_path
+            image, images_folder_path, masks_folder_path, csv_file_path, train_val
         )
         for image in tqdm(images)
     )
@@ -425,6 +440,38 @@ def split_train_val(csv_file_path, percent):
     csv_copy = split(csv_copy, 0, percent, csv_file_path)
 
     csv_copy.to_csv(csv_copy_path, index=False)
+    
+
+
+def convert(image, folder):
+    img = Image.open(folder + "/" + image + ".jpg")
+    img.save(folder + "/" + image + ".png")
+    os.remove(folder + "/" + image + ".jpg")
+
+
+def convert_format(folder, jobs, train_or_val):
+    images = [splitext(file)[0] for file in listdir(folder)]
+    print(f"Converting {train_or_val} from JPEG to PNG.")
+    Parallel(n_jobs=jobs)(
+        delayed(convert)(image, folder)
+        for image in tqdm(images)
+    )
+
+###########################################################
+def convert1(image, folder):
+    img = Image.open(folder + "/" + image + ".png")
+    img.save(folder + "/" + image + ".jpg")
+    os.remove(folder + "/" + image + ".png")
+
+
+def convert_format1(folder, jobs, train_or_val):
+    images = [splitext(file)[0] for file in listdir(folder)]
+    print(f"Converting {train_or_val} from JPEG to PNG.")
+    Parallel(n_jobs=jobs)(
+        delayed(convert1)(image, folder)
+        for image in tqdm(images)
+    )
+###########################################################
 
 
 def generate_dataset(path, resize_dimensions, n_jobs):
@@ -438,53 +485,114 @@ def generate_dataset(path, resize_dimensions, n_jobs):
     # Delete superpixels.
     del_superpixels(images_folder_path, n_jobs)
 
+    #convert_format(valimages_folder_path, 8, "Train")
+
+    # # Delete metadata file.
+    # try:
+    #     os.remove(images_folder_path + "/" + "ISIC-2017_Training_Data_metadata.csv")
+    # except: 
+    #     pass
+
+    # # Create new .csv file with seeds 
+    # with open('seeds.csv', 'w', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(["ID", "seed"])
+
+    # # Augment with relative masks.
+    # augment_dataset(
+    #     images_folder_path,
+    #     masks_folder_path,
+    #     csv_file_path,
+    #     n_jobs,
+    #     False
+    # )
+
+    # # Resize images.
+    # resize_set(
+    #     images_folder_path,
+    #     resize_dimensions,
+    #     n_jobs,
+    #     False,
+    #     "Train",
+    # )
+
+    # # Resize masks.
+    # resize_set(
+    #     masks_folder_path,
+    #     resize_dimensions,
+    #     n_jobs,
+#         True,
+    #     "Masks",
+    # )
+
+    # # Make images greyscale.
+    # make_greyscale(
+    #     images_folder_path,
+    #     n_jobs,
+    # )
+
+    ######################
+    # VALIDATION 
+        
+    # Augment with relative masks.
+    valimages_folder_path = path + "/" + "Validation"
+    valmasks_folder_path = valimages_folder_path + masks_suffix
+
+    # Delete superpixels.
+    del_superpixels(valimages_folder_path, n_jobs)
+
     # Delete metadata file.
     try:
-        os.remove(images_folder_path + "/" + "ISIC-2017_Training_Data_metadata.csv")
+        os.remove(valimages_folder_path + "/" + "ISIC-2017_Validation_Data_metadata.csv")
     except: 
         pass
 
-    # Create new .csv file with seeds 
-    with open('seeds.csv', 'w', newline='') as file:
+    # Create new .csv file with seeds for validation data
+    with open('seedsval.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["ID", "seed"])
 
+    #convert_format(valimages_folder_path, 8, "Validation")
+
     # Augment with relative masks.
     augment_dataset(
-        images_folder_path,
-        masks_folder_path,
+        valimages_folder_path,
+        valmasks_folder_path,
         csv_file_path,
         n_jobs,
+        "Validation"
     )
 
     # Resize images.
     resize_set(
-        images_folder_path,
+        valimages_folder_path,
         resize_dimensions,
         n_jobs,
-        "Train",
+        "Validation",
+        "Images"
     )
 
     # Resize masks.
     resize_set(
-        masks_folder_path,
+        valmasks_folder_path,
         resize_dimensions,
         n_jobs,
-        "Masks",
+        "Validation",
+        "Masks"
     )
 
     # Make images greyscale.
     make_greyscale(
-        images_folder_path,
+        valimages_folder_path,
         n_jobs,
     )
 
-    print("Creating Validation folders:")
-    os.makedirs(path + "/" + "Validation", exist_ok=True)
-    os.makedirs(path + "/" + "Validation_GT_masks", exist_ok=True)
+    # print("Creating Validation folders:")
+    # os.makedirs(path + "/" + "Validation", exist_ok=True)
+    # os.makedirs(path + "/" + "Validation_GT_masks", exist_ok=True)
 
-    # Split
-    split_train_val(csv_file_path, 0.15)
+    # # Split
+    # split_train_val(csv_file_path, 0.15)
 
 def train_val_split(path, dimensions):
     images_folder_path = path + "/" + "Train"
@@ -496,7 +604,37 @@ def train_val_split(path, dimensions):
     train_X = turn_np_imgs(images_folder_path, resize_dimensions)
     train_y, train_y1 = turn_np_masks(masks_folder_path, resize_dimensions)
 
-    test_X = turn_np_imgs(val_imgs_folder_path, resize_dimensions)
-    test_y, test_y1 = turn_np_masks(val_masks_folder_path, resize_dimensions)
+    val_X = turn_np_imgs(val_imgs_folder_path, resize_dimensions)
+    val_y, val_y1 = turn_np_masks(val_masks_folder_path, resize_dimensions)
 
-    return train_X, train_y, test_X, test_y, train_y1, test_y1
+    return train_X, train_y, val_X, val_y, train_y1, val_y1
+
+
+
+
+
+
+def del_augm(input_path, jobs):
+    """Deletes the superpixels images of the skin lesions.
+
+    Args:
+        input_path (string): Path of the folder containing all the images.
+        jobs (string): Number of job for parallelisation.
+    """
+    # Store the IDs of all the _superpixel images in a list.
+    images = [
+        splitext(file)[0]
+        for file in listdir(input_path)
+        if "x" in splitext(file)[0]
+    ]
+    print("Deleting augm Images:")
+    Parallel(n_jobs=jobs)(
+        delayed(os.remove)(str(input_path + "/" + str(image + ".png")))
+        for image in tqdm(images)
+    )
+
+
+path = "D:/Users/imbrm/ISIC_2017-2"
+size = (256,256)
+del_augm(path + "/Validation", 8)
+generate_dataset(path, size, 5)
