@@ -41,8 +41,8 @@ def del_superpixels(input_path, jobs):
     """Deletes the superpixels images of the skin lesions.
 
     Args:
-        input_path (string): Path of the folder containing all the images.
-        jobs (string): Number of job for parallelisation.
+        input_path (string): Path of the folder containing the superpixel images.
+        jobs (string): Number of jobs to be used for parallelisation.
     """
     # Store the IDs of all the _superpixel images in a list.
     images = [
@@ -58,7 +58,7 @@ def del_superpixels(input_path, jobs):
     logging.info(f"Succesfully deleted {len(images)} SUPERPIXEL images.")
 
 
-def resize(image, input_folder, size, is_mask):
+def resize(image, input_folder, size):
     """Defining a function that will allow me to parallelise the resizing process.
     It takes the name (basename) of the current image, resizes and saves the image.
 
@@ -84,12 +84,13 @@ def resize_set(input_folder, size, jobs, train_val, img_mask):
         input_folder (string): Path for input folder.
         size (tuple): Target size to be resized to.
         jobs (int): Number of parallelised jobs.
-        is_mask (string): States whether it's an image or masks set.
+        train_val (string): Specifies whether it's "Train" or "Validation"; used for showing progress.
+        is_mask (string): States whether it's an "Image" or "Mask" set; used for showing progress.
     """
     images = [splitext(file)[0] for file in listdir(input_folder)]
     print(f"Resizing {train_val} {img_mask}.")
     Parallel(n_jobs=jobs)(
-        delayed(resize)(image, input_folder, size, img_mask)
+        delayed(resize)(image, input_folder, size)
         for image in tqdm(images)
     )
 
@@ -118,6 +119,7 @@ def augment_operations(image_id, image_folder_path, mask_folder_path, train_val)
         image_id (string): The ID of the image to be augmented.
         image_folder_path (string): Path of folder in which the augmented img will be saved.
         mask_folder_path (string): Path of folder in which the augmented mask will be saved.
+        train_val (string): Specifies whether it's "Train" or "Validation".
 
     Returns:
         new_img (Image): New augmented PIL image.
@@ -138,6 +140,7 @@ def augment_operations(image_id, image_folder_path, mask_folder_path, train_val)
         ]
     )
 
+    ##############################  <--- Comment out HERE to load seeds from .csv file 
     # Set random seed.
     seed = np.random.randint(0, 2**30)
 
@@ -151,11 +154,19 @@ def augment_operations(image_id, image_folder_path, mask_folder_path, train_val)
         with open('seeds.csv', 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([image_id, seed])
+    ##############################
+    
 
-    # # Load seed from file     ############################## <--- Uncomment HERE to load seeds
-    # df = pd.read_csv("seed.csv")
+    ############################## <--- Uncomment HERE to load seeds from .csv file 
+    # # Load seed from file
+    # if train_val == "Validation":
+    #     df = pd.read_csv("seedval.csv")
+    # else:
+    #     df = pd.read_csv("seed.csv")
+
     # img_index = df.loc[df["image_id"] == image_id].index[0]
     # seed = df.at[img_index, "seed"]
+    ##############################
 
     # Set Torch's seed
     random.seed(seed)
@@ -186,6 +197,7 @@ def augment_img(image_id, images_folder_path, masks_folder_path, csv_file_path, 
         images_folder_path (string): Path of folder in which the augmented img will be saved.
         masks_folder_path (string): Path of folder in which the augmented mask will be saved.
         csv_file_path (string): Path leading to the .csv file with ground truth.
+        train_val (string): Specifies whether it's "Train" or "Validation".
     """
     if train_val == "Validation":
         img_1, img_1_mask = augment_operations(
@@ -275,6 +287,7 @@ def augment_dataset(images_folder_path, masks_folder_path, csv_file_path, jobs, 
         masks_folder_path (string): Path to folder containing images of masks.
         csv_file_path (string): Path to .csv file containing ground truth.
         jobs (int): Number by which the parallelisation will be applied concurrently.
+        train_val (string): Specifies whether it's "Train" or "Validation".
     """
     images = [splitext(file)[0] for file in listdir(images_folder_path)]
     print(f"Augmenting {train_val} Images and Masks:")
@@ -315,7 +328,15 @@ def make_greyscale(folder_path, jobs):
     logging.info(f"Successfully turned {len(images)} images to GrayScale.")
 
 
-def turn_np_imgs(folder_path, resize_dimensions):
+def turn_np_imgs(folder_path):
+    """Functions used for reading and returning the images in a list format.
+
+    Args:
+        folder_path (string): Path leading to folder containing images.
+
+    Returns:
+        imgs_array: (list): Multi-dimensional list containing the pixel values of images.
+    """    
     images = [splitext(file)[0] for file in listdir(folder_path)]
     imgs_array = []
     for image in images:
@@ -326,7 +347,18 @@ def turn_np_imgs(folder_path, resize_dimensions):
     #npa = np.asarray(imgs_array, dtype=np.float32)
     return imgs_array
 
-def turn_np_masks(folder_path, resize_dimensions):
+def turn_np_masks(folder_path):
+    """[summary]
+    Functions used for reading and returning the masks in a list format.
+    The pixel values are thresholded to either 0 or 1.
+
+    Args:
+        folder_path (string): Path leading to folder containing images.
+
+    Returns:
+        imgs_array (list): Multi-dimensional list containing the pixel values of masks.
+        imgs_array1 (list): Multi-dimensional list containing the thresholded pixel values of masks. 
+    """    
     images = [splitext(file)[0] for file in listdir(folder_path)]
     imgs_array = []
     imgs_array1 = []
@@ -444,34 +476,31 @@ def split_train_val(csv_file_path, percent):
 
 
 def convert(image, folder):
+    """Parallelisable function for converting all the images from JPEG to PNG format.
+
+    Args:
+        image (string): Image ID to convert.
+        folder (string): Path of the folder containing images to convert.
+    """    
     img = Image.open(folder + "/" + image + ".jpg")
     img.save(folder + "/" + image + ".png")
     os.remove(folder + "/" + image + ".jpg")
 
 
 def convert_format(folder, jobs, train_or_val):
+    """Converts all the images from JPEG to PNG format.
+
+    Args:
+        folder (string): Path of the folder containing images to convert.
+        jobs (int): Number of jobs for parallelisation.
+        train_or_val (string): Specifies whether it's Train or Validation images.
+    """    
     images = [splitext(file)[0] for file in listdir(folder)]
     print(f"Converting {train_or_val} from JPEG to PNG.")
     Parallel(n_jobs=jobs)(
         delayed(convert)(image, folder)
         for image in tqdm(images)
     )
-
-###########################################################
-def convert1(image, folder):
-    img = Image.open(folder + "/" + image + ".png")
-    img.save(folder + "/" + image + ".jpg")
-    os.remove(folder + "/" + image + ".png")
-
-
-def convert_format1(folder, jobs, train_or_val):
-    images = [splitext(file)[0] for file in listdir(folder)]
-    print(f"Converting {train_or_val} from JPEG to PNG.")
-    Parallel(n_jobs=jobs)(
-        delayed(convert1)(image, folder)
-        for image in tqdm(images)
-    )
-###########################################################
 
 
 def generate_dataset(path, resize_dimensions, n_jobs):
@@ -487,49 +516,49 @@ def generate_dataset(path, resize_dimensions, n_jobs):
 
     #convert_format(valimages_folder_path, 8, "Train")
 
-    # # Delete metadata file.
-    # try:
-    #     os.remove(images_folder_path + "/" + "ISIC-2017_Training_Data_metadata.csv")
-    # except: 
-    #     pass
+    # Delete metadata file.
+    try:
+        os.remove(images_folder_path + "/" + "ISIC-2017_Training_Data_metadata.csv")
+    except: 
+        pass
 
-    # # Create new .csv file with seeds 
-    # with open('seeds.csv', 'w', newline='') as file:
-    #     writer = csv.writer(file)
-    #     writer.writerow(["ID", "seed"])
+    # Create new .csv file with seeds 
+    with open('seeds.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["ID", "seed"])
 
-    # # Augment with relative masks.
-    # augment_dataset(
-    #     images_folder_path,
-    #     masks_folder_path,
-    #     csv_file_path,
-    #     n_jobs,
-    #     False
-    # )
+    # Augment with relative masks.
+    augment_dataset(
+        images_folder_path,
+        masks_folder_path,
+        csv_file_path,
+        n_jobs,
+        "Train"
+    )
 
-    # # Resize images.
-    # resize_set(
-    #     images_folder_path,
-    #     resize_dimensions,
-    #     n_jobs,
-    #     False,
-    #     "Train",
-    # )
+    # Resize images.
+    resize_set(
+        images_folder_path,
+        resize_dimensions,
+        n_jobs,
+        "Train",
+        "Images",
+    )
 
-    # # Resize masks.
-    # resize_set(
-    #     masks_folder_path,
-    #     resize_dimensions,
-    #     n_jobs,
-#         True,
-    #     "Masks",
-    # )
+    # Resize masks.
+    resize_set(
+        masks_folder_path,
+        resize_dimensions,
+        n_jobs,
+        "Train",
+        "Masks",
+    )
 
-    # # Make images greyscale.
-    # make_greyscale(
-    #     images_folder_path,
-    #     n_jobs,
-    # )
+    # Make images greyscale.
+    make_greyscale(
+        images_folder_path,
+        n_jobs,
+    )
 
     ######################
     # VALIDATION 
@@ -548,7 +577,7 @@ def generate_dataset(path, resize_dimensions, n_jobs):
         pass
 
     # Create new .csv file with seeds for validation data
-    with open('seedsval.csv', 'w', newline='') as file:
+    with open('seedval.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["ID", "seed"])
 
@@ -594,18 +623,17 @@ def generate_dataset(path, resize_dimensions, n_jobs):
     # # Split
     # split_train_val(csv_file_path, 0.15)
 
-def train_val_split(path, dimensions):
+def train_val_split(path):
     images_folder_path = path + "/" + "Train"
     masks_folder_path = images_folder_path + "_GT_masks"
     val_imgs_folder_path = path + "/" + "Validation"
     val_masks_folder_path = val_imgs_folder_path + "_GT_masks"
-    resize_dimensions = (dimensions)
 
-    train_X = turn_np_imgs(images_folder_path, resize_dimensions)
-    train_y, train_y1 = turn_np_masks(masks_folder_path, resize_dimensions)
+    train_X = turn_np_imgs(images_folder_path)
+    train_y, train_y1 = turn_np_masks(masks_folder_path)
 
-    val_X = turn_np_imgs(val_imgs_folder_path, resize_dimensions)
-    val_y, val_y1 = turn_np_masks(val_masks_folder_path, resize_dimensions)
+    val_X = turn_np_imgs(val_imgs_folder_path)
+    val_y, val_y1 = turn_np_masks(val_masks_folder_path)
 
     return train_X, train_y, val_X, val_y, train_y1, val_y1
 
@@ -636,5 +664,7 @@ def del_augm(input_path, jobs):
 
 path = "D:/Users/imbrm/ISIC_2017-2"
 size = (256,256)
-del_augm(path + "/Validation", 8)
+
+del_augm(path + "/Train_GT_masks", 8)
+del_augm(path + "/Validation_GT_masks", 8)
 generate_dataset(path, size, 5)

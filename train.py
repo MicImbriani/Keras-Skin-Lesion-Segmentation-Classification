@@ -26,7 +26,7 @@ tensorboard = TensorBoard(log_dir='./logs/logs_1e-4')
 
 print("Generating Dataset:")
 #data_process.generate_dataset(path, size, 8)
-train_X, train_y, val_X, val_y, train_y1, val_y1 = data_process.train_val_split(path, size)
+train_X, train_y, val_X, val_y, train_y1, val_y1 = data_process.train_val_split(path)
 
 print("Building model:")
 model = unet(input_size=size)

@@ -21,16 +21,15 @@ import tensorflow as tf
 import metrics
 
 
-def conv_block(neurons, block_input, batch_norm=False, dropout=False, middle=False):
+def conv_block(neurons, block_input, batch_norm=False, middle=False):
     conv1 = Conv2D(neurons, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(block_input)
     if batch_norm:
         conv1 = BatchNormalization()(conv1)
     conv2 = Conv2D(neurons, (3,3), activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
     if batch_norm:
         conv2 = BatchNormalization()(conv2)
-    if dropout:
-        conv2 = Dropout(0.5)(conv2)
     if middle:
+        conv2 = Dropout(0.5)(conv2)
         return conv2
     pool = MaxPooling2D(pool_size=(2,2))(conv2)
     return pool, conv2
