@@ -22,8 +22,6 @@ from torchvision import transforms
 import torch
 
 
-# from dataset import MyDataset
-
 
 # Make PIL tolerant of uneven images block sizes.
 ImageFile.LOAD_TRUCATED_IMAGES = True
@@ -376,102 +374,6 @@ def turn_np_masks(folder_path):
     
     #return npa, npa1
     return imgs_array, imgs_array1
-
-
-def move_data(list, path, data_type):
-    """Move the images whose ID is in "list" from the Training folder to Validation,
-    or, in the case of masks, from Training_GT_masks to Validation_GT_masks.
-
-    Args:
-        list (list): List containing the IDs of validation images/masks.
-        path (string): Path to parent folder.
-        data_type (string): Defines whether it's an image or a mask.
-    """
-    input_folder = path + "/" + "Train"
-    output_folder = path + "/" + "Validation"
-
-    if data_type.capitalize() == "Image":
-        for image_id in list:
-            shutil.move(
-                input_folder + "/" + image_id + ".png",
-                output_folder + "/" + image_id + ".png",
-            )
-
-    if data_type.capitalize() == "Mask":
-        input_folder = input_folder + "_GT_masks"
-        output_folder = output_folder + "_GT_masks"
-        for image_id in list:
-            shutil.move(
-                input_folder + "/" + image_id + ".png",
-                output_folder +  "/" + image_id + ".png"
-            )
-
-
-def split(df, result, val_ratio, csv_file_path):
-    """Performs the split into train and validation data.
-    Stores the indices of images with or without melanoma in the "train" list,
-    then it moves a certain percentage of them (specified by val_ratio) into
-    the "validation" list. Finally, marks each image with "T" or "V" appropriately.
-    The split is randomly performed using random.sample() function.
-
-    Args:
-        df (DataFrame): Pandas DataFrame containing information about the dataset.
-        result (int): Whether it's melanoma (1) or no melanoma (0).
-        val_ratio (float): Percentage of data to be split into validation.
-        csv_file_path (string): File path for extrapolating parent path.
-
-    Returns:
-        df (DataFrame): The transformed DataFrame with marked images.
-    """
-    train = list(df[df["melanoma"] == result].index)
-    # ceil function for rounding up float numbers
-    n_val = math.ceil(val_ratio * len(train))
-    validation = random.sample(train, n_val)
-    validation.sort()
-    for element in validation:
-        train.pop(train.index(element))
-
-    # Mark validation images with "V"
-    for id in tqdm(validation):
-        df.at[id, "split"] = "V"
-    # Mark train images with "T"
-    for id in tqdm(train):
-        df.at[id, "split"] = "T"
-    val_ids = [df.at[index, "image_id"] for index in validation]
-    val_masks_ids = [df.at[index, "image_id"] + "_segmentation" for index in validation]
-
-    path = os.path.split(csv_file_path)[0]
-
-    # Move validation images to folder.
-    move_data(val_ids, path, "Image")
-
-    # Move validation masks to folder.
-    move_data(val_masks_ids, path, "Mask")
-
-    return df
-
-
-def split_train_val(csv_file_path, percent):
-    """Callable function for splitting the dataset into train and validation.
-
-    Args:
-        csv_file_path (string): Path to .csv file containing ground truth.
-    """
-    csv_name = splitext(os.path.basename(csv_file_path))[0]
-    csv_copy_path = os.path.split(csv_file_path)[0] + "/" + csv_name + "_split.csv"
-    shutil.copy2(csv_file_path, csv_copy_path)
-
-    csv_copy = pd.read_csv(csv_copy_path)
-    csv_copy["split"] = ""
-
-    print("Splitting the dataset into Train/Validation:")
-
-    # MELANOMA YES (result=1)
-    csv_copy = split(csv_copy, 1, percent, csv_file_path)
-    # MELANOMA NO (result=0)
-    csv_copy = split(csv_copy, 0, percent, csv_file_path)
-
-    csv_copy.to_csv(csv_copy_path, index=False)
     
 
 
@@ -623,48 +525,55 @@ def generate_dataset(path, resize_dimensions, n_jobs):
     # # Split
     # split_train_val(csv_file_path, 0.15)
 
-def train_val_split(path):
-    images_folder_path = path + "/" + "Train"
-    masks_folder_path = images_folder_path + "_GT_masks"
-    val_imgs_folder_path = path + "/" + "Validation"
-    val_masks_folder_path = val_imgs_folder_path + "_GT_masks"
 
-    train_X = turn_np_imgs(images_folder_path)
-    train_y, train_y1 = turn_np_masks(masks_folder_path)
+def process_test_set(path, resize_dimensions, n_jobs):
+    masks_suffix = "_GT_masks"
+    csv_suffix = "_GT_result.csv"
 
-    val_X = turn_np_imgs(val_imgs_folder_path)
-    val_y, val_y1 = turn_np_masks(val_masks_folder_path)
+    images_folder_path = path + "/" + "Test"
+    masks_folder_path = images_folder_path + masks_suffix
 
-    return train_X, train_y, val_X, val_y, train_y1, val_y1
+    # Delete superpixels.
+    del_superpixels(images_folder_path, n_jobs)
 
+    # Convert JPEG to PNG
+    convert_format(valimages_folder_path, 8, "Train")
 
+    # Delete metadata file.
+    try:
+        os.remove(images_folder_path + "/" + "ISIC-2017_Test_v2_Data_metadata.csv.csv")
+    except: 
+        pass
 
+    # Resize images.
+    resize_set(
+        images_folder_path,
+        resize_dimensions,
+        n_jobs,
+        "Test",
+        "Images",
+    )
 
+    # Resize masks.
+    resize_set(
+        masks_folder_path,
+        resize_dimensions,
+        n_jobs,
+        "Test",
+        "Masks",
+    )
 
-
-def del_augm(input_path, jobs):
-    """Deletes the superpixels images of the skin lesions.
-
-    Args:
-        input_path (string): Path of the folder containing all the images.
-        jobs (string): Number of job for parallelisation.
-    """
-    # Store the IDs of all the _superpixel images in a list.
-    images = [
-        splitext(file)[0]
-        for file in listdir(input_path)
-        if "x" in splitext(file)[0]
-    ]
-    print("Deleting augm Images:")
-    Parallel(n_jobs=jobs)(
-        delayed(os.remove)(str(input_path + "/" + str(image + ".png")))
-        for image in tqdm(images)
+    # Make images greyscale.
+    make_greyscale(
+        images_folder_path,
+        n_jobs,
     )
 
 
-path = "D:/Users/imbrm/ISIC_2017-2"
-size = (256,256)
+def train_val_sets(path, jobs):
+    size = (256,256)
 
-del_augm(path + "/Train_GT_masks", 8)
-del_augm(path + "/Validation_GT_masks", 8)
-generate_dataset(path, size, 5)
+    # del_augm(path + "/Train_GT_masks", 8)
+    # del_augm(path + "/Validation_GT_masks", 8)
+    generate_dataset(path, size, jobs)
+    process_test_set(path, size, jobs)

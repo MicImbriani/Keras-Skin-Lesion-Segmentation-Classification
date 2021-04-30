@@ -1,5 +1,4 @@
 from unet import unet
-#from unetbn import unet
 import metrics
 import data_process
 from PIL import Image
